@@ -21,17 +21,12 @@ jobs:
         run: |
           # Define keyword-label mappings
           declare -A LABELS=(
-            ["docs"]="Documentation"
-            ["Documentation"]="Documentation"
+            ["Documentation"|"docs"]="Documentation"
             ["Feature"]="Feature Request"
-            ["Feature Request"]="Feature Request"
 
             # ROCm Versions
-            ["ROCm 6.3.2"]="ROCm 6.3.2"
             ["6.3.2"]="ROCm 6.3.2"
-            ["ROCm 6.3.1"]="ROCm 6.3.1"
             ["6.3.1"]="ROCm 6.3.1"
-            ["ROCm 6.3.0"]="ROCm 6.3.0"
             ["6.3.0"]="ROCm 6.3.0"
 
             # AMD Instinct GPUs
@@ -44,9 +39,9 @@ jobs:
             ["MI100"]="AMD Instinct MI100"
 
             # Radeon GPUs
-            ["7900 XTX", "7900XTX"]="AMD Radeon RX 7900 XTX"
-            ["7900 XT", "7900XT"]="AMD Radeon RX 7900 XT"
-            ["Radeon VII", "RadeonVII"]="AMD Radeon VII"
+            ["7900 XTX"|"7900XTX"]="AMD Radeon RX 7900 XTX"
+            ["7900 XT"|"7900XT"]="AMD Radeon RX 7900 XT"
+            ["Radeon VII"|"RadeonVII"]="AMD Radeon VII"
           )
 
           # Initialize an empty label list
