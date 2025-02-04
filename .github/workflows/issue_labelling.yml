@@ -1,0 +1,69 @@
+name: "Issue Labeller"
+
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Auto-label issues based on keywords
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          REPO: ${{ github.repository }}
+        run: |
+          # Define keyword-label mappings
+          declare -A LABELS=(
+            ["docs"]="Documentation"
+            ["Documentation"]="Documentation"
+            ["Feature"]="Feature Request"
+            ["Feature Request"]="Feature Request"
+
+            # ROCm Versions
+            ["ROCm 6.3.2"]="ROCm 6.3.2"
+            ["6.3.2"]="ROCm 6.3.2"
+            ["ROCm 6.3.1"]="ROCm 6.3.1"
+            ["6.3.1"]="ROCm 6.3.1"
+            ["ROCm 6.3.0"]="ROCm 6.3.0"
+            ["6.3.0"]="ROCm 6.3.0"
+
+            # AMD Instinct GPUs
+            ["MI325X"]="AMD Instinct MI325X"
+            ["MI300X"]="AMD Instinct MI300X"
+            ["MI300A"]="AMD Instinct MI300A"
+            ["MI250X"]="AMD Instinct MI250X"
+            ["MI250"]="AMD Instinct MI250"
+            ["MI210"]="AMD Instinct MI210"
+            ["MI100"]="AMD Instinct MI100"
+
+            # Radeon GPUs
+            ["7900 XTX"]="AMD Radeon RX 7900 XTX"
+            ["7900 XT"]="AMD Radeon RX 7900 XT"
+            ["Radeon VII"]="AMD Radeon VII"
+          )
+
+          # Initialize an empty label list
+          LABEL_LIST=()
+
+          # Search for keywords in the title and body
+          for KEYWORD in "${!LABELS[@]}"; do
+            if echo "$ISSUE_TITLE $ISSUE_BODY" | grep -qi "$KEYWORD"; then
+              LABEL_LIST+=("${LABELS[$KEYWORD]}")
+            fi
+          done
+
+          # Apply labels if matches are found
+          if [ ${#LABEL_LIST[@]} -gt 0 ]; then
+            LABELS_JSON=$(printf '%s\n' "${LABEL_LIST[@]}" | jq -R . | jq -s .)
+            curl -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/labels \
+              -d "{\"labels\": $LABELS_JSON}"
+          fi
