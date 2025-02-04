@@ -59,11 +59,19 @@ jobs:
             fi
           done
 
+          # Logging the matched labels
+          echo "Detected Labels: ${LABEL_LIST[*]}"
+
           # Apply labels if matches are found
           if [ ${#LABEL_LIST[@]} -gt 0 ]; then
             LABELS_JSON=$(printf '%s\n' "${LABEL_LIST[@]}" | jq -R . | jq -s .)
+            
+            echo "Applying Labels: $LABELS_JSON"  # Additional log before API call
+            
             curl -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
               -H "Accept: application/vnd.github.v3+json" \
               https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/labels \
               -d "{\"labels\": $LABELS_JSON}"
+          else
+            echo "No matching labels found."
           fi
