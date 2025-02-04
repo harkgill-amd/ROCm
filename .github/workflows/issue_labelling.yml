@@ -44,9 +44,9 @@ jobs:
             ["MI100"]="AMD Instinct MI100"
 
             # Radeon GPUs
-            ["7900 XTX"]="AMD Radeon RX 7900 XTX"
-            ["7900 XT"]="AMD Radeon RX 7900 XT"
-            ["Radeon VII"]="AMD Radeon VII"
+            ["7900 XTX", "7900XTX"]="AMD Radeon RX 7900 XTX"
+            ["7900 XT", "7900XT"]="AMD Radeon RX 7900 XT"
+            ["Radeon VII", "RadeonVII"]="AMD Radeon VII"
           )
 
           # Initialize an empty label list
