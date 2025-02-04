@@ -1,4 +1,4 @@
-name: "Issue Labeller"
+name: "Auto Label Issues Based on Keywords"
 
 on:
   issues:
@@ -8,65 +8,64 @@ jobs:
   label:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
+      - name: Label issue based on keywords
+        uses: actions/github-script@v6
+        with:
+          github-token: "${{ secrets.GITHUB_TOKEN }}"
+          script: |
+            const issueBody = context.payload.issue.body.toLowerCase(); // Get the body and convert to lowercase
+            const labels = [];
 
-      - name: Auto-label issues based on keywords
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          REPO: ${{ github.repository }}
-        run: |
-          # Define keyword-label mappings
-          declare -A LABELS=(
-            ["Documentation"|"docs"]="Documentation"
-            ["Feature"]="Feature Request"
+            // Define a mapping of regex patterns and corresponding labels
+            const keywordLabelMappings = [
+              { pattern: /documentation/i, label: "Documentation" },
+              { pattern: /feature request/i, label: "Feature Request" },
+              { pattern: /mi325x/i, label: "AMD Instinct MI325X" },
+              { pattern: /mi300x/i, label: "AMD Instinct MI300X" },
+              { pattern: /mi300a/i, label: "AMD Instinct MI300A" },
+              { pattern: /mi250x/i, label: "AMD Instinct MI250X" },
+              { pattern: /mi250/i, label: "AMD Instinct MI250" },
+              { pattern: /mi210/i, label: "AMD Instinct MI210" },
+              { pattern: /mi100/i, label: "AMD Instinct MI100" },
+              { pattern: /mi50/i, label: "AMD Instinct MI50" },
+              { pattern: /mi25/i, label: "AMD Instinct MI25" },
+              { pattern: /v710/i, label: "AMD Radeon PRO V710" },
+              { pattern: /w7900 dual slot/i, label: "AMD Radeon PRO W7900 Dual Slot" },
+              { pattern: /w7900/i, label: "AMD Radeon PRO W7900" },
+              { pattern: /w7800/i, label: "AMD Radeon PRO W7800" },
+              { pattern: /w6800/i, label: "AMD Radeon PRO W6800" },
+              { pattern: /v620/i, label: "AMD Radeon PRO V620" },
+              { pattern: /pro vii/i, label: "AMD Radeon PRO VII" },
+              { pattern: /7900 xtx/i, label: "AMD Radeon RX 7900 XTX" },
+              { pattern: /7900 xt/i, label: "AMD Radeon RX 7900 XT" },
+              { pattern: /7900 gre/i, label: "AMD Radeon RX 7900 GRE" },
+              { pattern: /rocm 6.3.2/i, label: "ROCm 6.3.2" },
+              { pattern: /rocm 6.3.1/i, label: "ROCm 6.3.1" },
+              { pattern: /rocm 6.3.0/i, label: "ROCm 6.3.0" },
+              { pattern: /rocm 6.2.4/i, label: "ROCm 6.2.4" },
+              { pattern: /rocm 6.2.3/i, label: "ROCm 6.2.3" },
+              { pattern: /rocm 6.2.2/i, label: "ROCm 6.2.2" },
+              { pattern: /rocm 6.2.1/i, label: "ROCm 6.2.1" },
+              { pattern: /rocm 6.2.0/i, label: "ROCm 6.2.0" },
+              { pattern: /rocm 6.1.2/i, label: "ROCm 6.1.2" },
+              { pattern: /rocm 6.1.1/i, label: "ROCm 6.1.1" },
+              { pattern: /rocm 6.1.0/i, label: "ROCm 6.1.0" },
+              { pattern: /rocm 6.0.0/i, label: "ROCm 6.0.0" }
+            ];
 
-            # ROCm Versions
-            ["6.3.2"]="ROCm 6.3.2"
-            ["6.3.1"]="ROCm 6.3.1"
-            ["6.3.0"]="ROCm 6.3.0"
+            // Iterate through the mappings and apply labels
+            keywordLabelMappings.forEach(mapping => {
+              if (issueBody.match(mapping.pattern)) {
+                labels.push(mapping.label);
+              }
+            });
 
-            # AMD Instinct GPUs
-            ["MI325X"]="AMD Instinct MI325X"
-            ["MI300X"]="AMD Instinct MI300X"
-            ["MI300A"]="AMD Instinct MI300A"
-            ["MI250X"]="AMD Instinct MI250X"
-            ["MI250"]="AMD Instinct MI250"
-            ["MI210"]="AMD Instinct MI210"
-            ["MI100"]="AMD Instinct MI100"
-
-            # Radeon GPUs
-            ["7900 XTX"|"7900XTX"]="AMD Radeon RX 7900 XTX"
-            ["7900 XT"|"7900XT"]="AMD Radeon RX 7900 XT"
-            ["Radeon VII"|"RadeonVII"]="AMD Radeon VII"
-          )
-
-          # Initialize an empty label list
-          LABEL_LIST=()
-
-          # Search for keywords in the title and body
-          for KEYWORD in "${!LABELS[@]}"; do
-            if echo "$ISSUE_TITLE $ISSUE_BODY" | grep -qi "$KEYWORD"; then
-              LABEL_LIST+=("${LABELS[$KEYWORD]}")
-            fi
-          done
-
-          # Logging the matched labels
-          echo "Detected Labels: ${LABEL_LIST[*]}"
-
-          # Apply labels if matches are found
-          if [ ${#LABEL_LIST[@]} -gt 0 ]; then
-            LABELS_JSON=$(printf '%s\n' "${LABEL_LIST[@]}" | jq -R . | jq -s .)
-            
-            echo "Applying Labels: $LABELS_JSON"  # Additional log before API call
-            
-            curl -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/labels \
-              -d "{\"labels\": $LABELS_JSON}"
-          else
-            echo "No matching labels found."
-          fi
+            // Apply labels to the issue if any are found
+            if (labels.length > 0) {
+              await github.rest.issues.addLabels({
+                issue_number: context.payload.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                labels: labels
+              });
+            }
