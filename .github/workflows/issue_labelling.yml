@@ -1,70 +1,22 @@
-name: "Issue Labeller"
+name: Issue retrieval
 
 on:
   issues:
-    types: [opened, edited]
+    types: [opened]
 
 jobs:
-  label:
+  auto-retrieve:
     runs-on: ubuntu-latest
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Auto-label issues based on keywords
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ISSUE_TITLE: ${{ github.event.issue.title }}
-          ISSUE_BODY: ${{ github.event.issue.body }}
-          ISSUE_NUMBER: ${{ github.event.issue.number }}
-          REPO: ${{ github.repository }}
-        run: |
-          # Define keyword-label mappings
-          declare -A LABELS=(
-            ["(docs|Documentation)"]="Documentation"
-            ["Feature"]="Feature Request"
-
-            # ROCm Versions
-            ["(6\.3\.[0-9])"]="ROCm 6.3.x"
-
-            # AMD Instinct GPUs
-            ["MI325X"]="AMD Instinct MI325X"
-            ["MI300X"]="AMD Instinct MI300X"
-            ["MI300A"]="AMD Instinct MI300A"
-            ["MI250X"]="AMD Instinct MI250X"
-            ["MI250"]="AMD Instinct MI250"
-            ["MI210"]="AMD Instinct MI210"
-            ["MI100"]="AMD Instinct MI100"
-
-            # Radeon GPUs
-            ["(7900XTX|7900 XTX)"]="AMD Radeon RX 7900 XTX"
-            ["(7900XT|7900 XT)"]="AMD Radeon RX 7900 XT"
-            ["Radeon VII"|"RadeonVII"]="AMD Radeon VII"
-          )
-
-          # Initialize an empty label list
-          LABEL_LIST=()
-
-          # Search for keywords in the title and body
-          for KEYWORD in "${!LABELS[@]}"; do
-            if echo "$ISSUE_TITLE $ISSUE_BODY" | grep -qi "$KEYWORD"; then
-              LABEL_LIST+=("${LABELS[$KEYWORD]}")
-            fi
-          done
-
-          # Logging the matched labels
-          echo "Detected Labels: ${LABEL_LIST[*]}"
-
-          # Apply labels if matches are found
-          if [ ${#LABEL_LIST[@]} -gt 0 ]; then
-            LABELS_JSON=$(printf '%s\n' "${LABEL_LIST[@]}" | jq -R . | jq -s .)
-            
-            echo "Applying Labels: $LABELS_JSON"  # Additional log before API call
-            
-            curl -X POST -H "Authorization: Bearer $GITHUB_TOKEN" \
-              -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/$REPO/issues/$ISSUE_NUMBER/labels \
-              -d "{\"labels\": $LABELS_JSON}"
-          else
-            echo "No matching labels found."
-          fi
+      - name: Generate a token
+        id: generate_token
+        uses: actions/create-github-app-token@v1
+        with:
+          app_id: ${{ secrets.ACTION_APP_ID }}
+          private_key: ${{ secrets.ACTION_PEM }}
+      - name: 'Retrieve Issue'
+        uses: harkgill-amd/rocm_issue_management@main
+        with:
+          authentication-token: ${{ steps.generate_token.outputs.token }}
+          github-organization: 'ROCm'
+          project-num: '6'
