@@ -12,8 +12,8 @@ jobs:
         id: generate_token
         uses: actions/create-github-app-token@v1
         with:
-          app_id: ${{ secrets.ACTION_APP_ID }}
-          private_key: ${{ secrets.ACTION_PEM }}
+          app-id: ${{ secrets.ACTION_APP_ID }}
+          private-key: ${{ secrets.ACTION_PEM }}
       - name: 'Retrieve Issue'
         uses: harkgill-amd/rocm_issue_management@main
         with:
